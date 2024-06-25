@@ -94,7 +94,7 @@ Our released implementation is tested on:
 ### Prerequisites
 
 * Clone our project folder
-* Create and lunch your conda environment with
+* Create and launch your conda environment with
   ```sh
   conda create -n PIDL_Seg_Composites python=3.10.3
   conda activate PIDL_Seg_Composites
