@@ -5,9 +5,22 @@ import torch.nn.functional as F
 ################### Basic Modules
 
 class DoubleConv(nn.Module):
-    """Two convolutional layers: (Conv => [BN2d] => ReLU/LReLU)*2
-    * Attention: In the original UNet structure, DoubleConv only uses ReLU.
-    And the default negative slope should be 0.01 if LReLU"""
+    """A module comprising two convolutional layers each followed by an activation function.
+    
+    This module performs two consecutive convolution operations, each followed by a ReLU, LeakyReLU, 
+    or ELU activation function. Batch normalization is optional.
+    
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        mid_channels (int, optional): Number of intermediate channels. If None, it defaults to out_channels.
+        activation (str): Type of activation function to use ("relu", "lrelu", "elu"). Default is "relu".
+        dropout_rate (float, optional): Dropout rate. If None, no dropout is applied.
+    
+    Attributes:
+        double_conv (nn.Sequential): Sequential container of layers for the double convolution.
+        dropout (nn.Dropout or None): Dropout layer, if dropout_rate is specified.
+    """
 
     def __init__(
         self,
@@ -43,7 +56,17 @@ class DoubleConv(nn.Module):
 
 
 class Down(nn.Module):
-    """Downscaling : maxpool then double conv"""
+    """Downscaling with maxpool followed by a DoubleConv.
+    
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        activation (str): Type of activation function to use in DoubleConv ("relu", "lrelu", "elu"). Default is "relu".
+        dropout_rate (float, optional): Dropout rate for DoubleConv. If None, no dropout is applied.
+    
+    Attributes:
+        maxpool_conv (nn.Sequential): Sequential container of layers for downsampling.
+    """
 
     def __init__(self, in_channels, out_channels, activation="relu", dropout_rate=None):
         super().__init__()
@@ -62,7 +85,18 @@ class Down(nn.Module):
 
 
 class DownSkip(nn.Module):
-    """Downscaling : maxpool then double conv with skipping connections"""
+    """Downscaling with maxpool followed by a DoubleConv, including skip connections.
+    
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        activation (str): Type of activation function to use in DoubleConv ("relu", "lrelu", "elu"). Default is "relu".
+        dropout_rate (float, optional): Dropout rate for DoubleConv. If None, no dropout is applied.
+    
+    Attributes:
+        maxpool (nn.MaxPool2d): Max pooling layer.
+        conv (DoubleConv): Double convolutional layer with activation function.
+    """
 
     def __init__(self, in_channels, out_channels, activation="relu", dropout_rate=None):
         super().__init__()
@@ -82,7 +116,19 @@ class DownSkip(nn.Module):
 
 
 class Up(nn.Module):
-    """Upscaling : upsampling then double conv with skip connections"""
+    """Upscaling then double conv with skip connections.
+    
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        bilinear (bool): If True, use bilinear upsampling. Otherwise, use ConvTranspose2d.
+        activation (str): Type of activation function to use in DoubleConv ("relu", "lrelu", "elu"). Default is "relu".
+        dropout_rate (float, optional): Dropout rate for DoubleConv. If None, no dropout is applied.
+    
+    Attributes:
+        up (nn.Module): Upsampling layer (either Upsample or ConvTranspose2d).
+        conv (DoubleConv): Double convolutional layer with activation function.
+    """
 
     def __init__(
         self,
@@ -131,7 +177,15 @@ class Up(nn.Module):
 
 
 class OutConv(nn.Module):
-    """Conv layer with kernel size 1"""
+    """Output convolutional layer with kernel size 1.
+    
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+    
+    Attributes:
+        conv (nn.Conv2d): Convolutional layer.
+    """
 
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
@@ -141,31 +195,36 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 
-def init_weights(layers, kernel_initializer):
-    if kernel_initializer == "xavier_normal":
-        layers.apply(init_weights_xavier_normal)
-    if kernel_initializer == "kaiming_normal":
-        layers.apply(init_weights_kaiming_normal)
-
-
-def init_weights_kaiming_normal(m):
-    if hasattr(m, "weight") and m.weight is not None:
-        torch.nn.init.kaiming_normal_(m.weight)
-
-
-def init_weights_xavier_normal(m):
-    if hasattr(m, "weight") and m.weight is not None:
-        torch.nn.init.xavier_normal_(m.weight)
-
 
 ################### UNet
 
 class UNet(nn.Module):
-    """U-Net architecture for the 2nd evaluator/predictor "epsilon_y" :
-    Encoder: (Conv => [BN2d] => ReLU/LReLU)*2 => { Maxpool => [(Conv => [BN2d] => ReLU/LReLU)*2] }*ndepth => ...
-    Decoder: ... => { Upsampling/DeConv => [(Conv => [BN2d] => ReLU/LReLU)*2] }*ndepth => Conv
-    - initial_channels, n_depth and bilinear can be changed while training
-    - n_channels=1 for input channel(s) and n_classes=1 for output channel(s) by defaut
+    """U-Net architecture for image segmentation or similar tasks.
+    
+    The U-Net consists of an encoder and a decoder. The encoder downsamples the input image, 
+    capturing context through a series of downsampling and convolutional layers. The decoder 
+    upsamples the feature maps, reconstructing the spatial dimensions through a series of 
+    upsampling and convolutional layers, incorporating skip connections from the encoder.
+
+    Args:
+        n_channels (int): Number of input channels.
+        n_output_channels (int): Number of output channels.
+        initial_channels (int): Number of channels for the initial convolutional layer.
+        ndepth (int): Depth of the U-Net, defining the number of downsampling/upsampling operations.
+        bilinear (bool): If True, use bilinear upsampling. Otherwise, use ConvTranspose2d.
+        activation (str): Type of activation function to use in convolutional layers ("relu", "lrelu", "elu"). Default is "relu".
+        dropout_rate (float, optional): Dropout rate for convolutional layers. If None, no dropout is applied.
+        final_activation (str, optional): Final activation function ("softmax" or None).
+    
+    Attributes:
+        n_channels (int): Number of input channels.
+        n_output_channels (int): Number of output channels.
+        bilinear (bool): If True, use bilinear upsampling.
+        final_activation (str or None): Final activation function.
+        downs (nn.ModuleList): List of downsampling layers.
+        down_last (Down): Final downsampling layer.
+        ups (nn.ModuleList): List of upsampling layers.
+        outc (OutConv): Output convolutional layer.
     """
 
     def __init__(
@@ -189,10 +248,10 @@ class UNet(nn.Module):
         cn = 2 * initial_channels
         factor = 2 if bilinear else 1
 
-        # DoubleConv + Downsampling(n_depth-1): all outputs in "list_downs" are to be concat. with inputs in "list_ups"
+        # DoubleConv + Downsampling(n_depth-1): all outputs in "list_downs" are to be concatenated with inputs in "list_ups"
         list_downs = []
 
-        # (Input channels, Output channels)[result]: (1, 64)[x1]
+        # (Input channels, Output channels)[result]: (1, initial_channels)[x1]
         list_downs.append(
             DoubleConv(
                 n_channels,
@@ -202,7 +261,7 @@ class UNet(nn.Module):
             )
         )
 
-        # (64, 128)[x2]-(128, 256)[x3]-(256, 512)[x4]
+        # Downsampling layers: (initial_channels, 2*initial_channels)[x2], (2*initial_channels, 4*initial_channels)[x3], etc.
         for i in range(ndepth - 1):
             list_downs.append(
                 Down(c, cn, activation=activation, dropout_rate=dropout_rate)
@@ -211,15 +270,15 @@ class UNet(nn.Module):
             cn *= 2
         self.downs = nn.ModuleList(list_downs)
 
-        # The last downsampling layer: (512, 1024//f)[x5]
+        # The last downsampling layer: (current_channels, next_channels/factor)[x5]
         self.down_last = Down(
             c, cn // factor, activation=activation, dropout_rate=dropout_rate
         )
 
-        # Upsampling
+        # Upsampling layers
         list_ups = []
 
-        # (1024, 512//f, b)[cat x4]-(512, 256//f, b)[cat x3]-(256, 128//f, b)[cat x2]-(128, 64, b)[cat x1]
+        # (next_channels, current_channels/factor)[cat x4], (current_channels, prev_channels/factor)[cat x3], etc.
         for i in range(ndepth):
             if i != ndepth - 1:
                 list_ups.append(
@@ -245,12 +304,11 @@ class UNet(nn.Module):
                 )
         self.ups = nn.ModuleList(list_ups)
 
-        # (64, 1)[logits]
+        # Output layer: (final_channels, n_output_channels)
         self.outc = OutConv(c, n_output_channels)
 
     def forward(self, x):
-
-        # Store feature maps in each downsampling operation (the first DoubleConv also included)
+        # Store feature maps from each downsampling operation
         features = []
         for down in self.downs:
             x = down(x)
@@ -259,17 +317,18 @@ class UNet(nn.Module):
         # Latent space feature maps
         x = self.down_last(x)
 
-        # Match properly the concatenation in each upsampling operation
+        # Match the concatenation with feature maps from the encoder
         for i, up in enumerate(self.ups):
             x = up(x, features[len(features) - i - 1])
 
-        # Output
+        # Output layer
         x = self.outc(x)
         if self.final_activation == "softmax":
             x = torch.nn.functional.softmax(x, dim=1)
         return x
 
     def use_checkpointing(self):
+        """Enable gradient checkpointing to save memory."""
         self.downs = torch.utils.checkpoint(self.downs)
         self.down_last = torch.utils.checkpoint(self.down_last)
         self.ups = torch.utils.checkpoint(self.ups)
