@@ -16,15 +16,15 @@ from tools import (
 )
 
 
-# Loading train/validation/test data
+# Load the train/validation/test data from a pickle file
 with open(f"./data/dataset.pkl", "rb") as file:
     dict_data = pickle.load(file)
 
-# Set device
+# Set the device to GPU if available, otherwise CPU
 device = set_device()
 
 
-# Get Pytorch DataLoaders
+# Get PyTorch DataLoaders for training and validation data
 dataloaders = get_dataloaders(
     dict_data,
     device=device,
@@ -33,7 +33,7 @@ dataloaders = get_dataloaders(
     num_workers=0,
 )
 
-# Setting up the models
+# Initialize the Nsigma model with specified parameters
 Nsigma = UNet(
     n_channels=4,
     n_output_channels=3,
@@ -44,7 +44,7 @@ Nsigma = UNet(
     dropout_rate=None,
 ).to(device)
 
-
+# Initialize the Nseg model with specified parameters
 Nseg = UNet(
     n_channels=1,
     n_output_channels=3,
@@ -57,14 +57,14 @@ Nseg = UNet(
 ).to(device)
 
 
-# Optimizers and learning rate schedulers - Nsigma
+# Define optimizers and learning rate schedulers for Nsigma
 initial_Nsigma_lr = 1e-3
 optimizer_Nsigma = torch.optim.Adam(
     Nsigma.parameters(),
     initial_Nsigma_lr,
     weight_decay=1e-5,
 )
-lrs_Nsigma1 = LROnStagnationPlateau(  # ReduceLROnPlateau LROnStagnationPlateau
+lrs_Nsigma1 = LROnStagnationPlateau(
     optimizer_Nsigma,
     patience=5,
     threshold_mode="abs",
@@ -81,7 +81,7 @@ lrs_Nsigma2 = LROnStagnationPlateau(
 )
 scheduler_Nsigma = MetricsChainedScheduler([lrs_Nsigma1, lrs_Nsigma2])
 
-# Optimizers and learning rate schedulers - Nseg
+# Define optimizers and learning rate schedulers for Nseg
 initial_Nseg_lr = 1e-3
 optimizer_Nseg = torch.optim.Adam(
     Nseg.parameters(),
@@ -107,7 +107,7 @@ lrs_Nseg2 = LROnStagnationPlateau(
 scheduler_Nseg = MetricsChainedScheduler([lrs_Nseg1, lrs_Nseg2])
 
 
-# Setting initial variables and max epochs
+# Initialize training variables
 save = True
 segmentation_phase = False
 loss_phi_phase = False
@@ -124,7 +124,7 @@ E_tensor = expand_properties_tensor(torch.tensor([10.2170,  95.7846, 191.5692]))
 poisson_tensor = expand_properties_tensor(torch.tensor([0.3500, 0.2000, 0.2000]))
 
 
-# Train and validation for one epoch
+# Train the Nsigma model for one epoch
 def train_Nsigma_one_epoch():
     Nsigma.train()
     running_loss = 0.0
@@ -163,7 +163,7 @@ def train_Nsigma_one_epoch():
 
     return running_loss / (iteration + 1)
 
-
+# Validate the models for one epoch
 def validation_one_epoch():
     Nseg.eval()
     running_vloss = running_seg_vloss = 0.0
@@ -210,7 +210,7 @@ def validation_one_epoch():
 
     return running_vloss / (iteration + 1), running_seg_vloss / (iteration + 1)
 
-
+# Train the Nseg model for one epoch
 def train_Nseg_one_epoch():
     Nseg.train()
     running_seg_loss = 0.0
@@ -237,17 +237,17 @@ def train_Nseg_one_epoch():
     return running_seg_loss / (iteration + 1)
 
 
-# Launch the training
+# Launch the training loop
 for epoch in range(EPOCHS):
 
     if not segmentation_phase:
-        # Train Nsigma
+        # Train Nsigma model
         avg_loss = train_Nsigma_one_epoch()
     else:
-        # Train Nseg
+        # Train Nseg model
         avg_seg_loss = train_Nseg_one_epoch()
 
-    # Validation
+    # Validate models
     with torch.no_grad():
         avg_vloss, avg_seg_vloss = validation_one_epoch()
 
@@ -262,21 +262,21 @@ for epoch in range(EPOCHS):
             func="train Nseg",
         )
 
-    # Track best performance of Nsigma, and save the model's state
+    # Track and save the best performance of Nsigma
     if not segmentation_phase and avg_vloss < best_vloss:
         best_vloss = avg_vloss
         best_epoch = epoch + 1
         if save:
             torch.save(Nsigma.state_dict(), "./models/Nsigma")
 
-    # Track best performance of Nseg, and save the model's state
+    # Track and save the best performance of Nseg
     if segmentation_phase and avg_seg_vloss < best_seg_vloss:
         best_seg_vloss = avg_seg_vloss
         best_epoch = epoch + 1
         if save:
             torch.save(Nseg.state_dict(), "./models/Nseg")
 
-    # Check phase
+    # Check and update training phases
     if not loss_phi_phase:
         if not segmentation_phase:
             lrs_Nsigma1.step(avg_vloss)
