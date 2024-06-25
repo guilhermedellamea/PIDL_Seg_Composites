@@ -12,10 +12,10 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-<!--
+
   <a href="https://github.com/guilhermedellamea/PIDL_Seg_Composites">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>-->
+    <img src="logo/logo.png" alt="Logo" width="500" height="320">
+  </a>
 
 <h3 align="center">Physics Informed Self-Supervised Segmentation of Composite Materials</h3>
 
@@ -46,7 +46,6 @@
       <a href="#getting-started">Getting Started</a>
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
     <li><a href="#usage">Usage</a>
@@ -56,7 +55,6 @@
         <li><a href="#testing">Testing</a></li>
       </ul>
     </li>
-    <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -116,13 +114,13 @@ Our released implementation is tested on:
 ## Usage
 
 ### Dataset
-The dataset used in our experiments can be downloaded [here]() and should be put into the data folder.
+The dataset used in our experiments can be downloaded [here](https://drive.google.com/file/d/19kad-0AsQzQB4sd37Bz2KJFj0PjliQ3h/view?usp=drive_link) and should be placed into the data folder.
 
 ### Training
 To train a model you can use the `train.py` script provided. In this implementation the momentum conservation, segmentation and $\mathcal{L}_\phi$ training phases are split to accelerate the training.
 
 ### Testing 
-The trained models can be tested with the `test.py` script.
+The trained models can be tested with the `test.ipynb` notebook.
 
 
 <!-- CONTRIBUTING -->
