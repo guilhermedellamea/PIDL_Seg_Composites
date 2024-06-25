@@ -142,7 +142,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT (or other) License. See `LICENSE.txt` for more information.
+Distributed under the Apache License. See `LICENSE` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -177,6 +177,6 @@ This project has received funding from the European Union’s Horizon 2020 resea
 [issues-shield]: https://img.shields.io/github/issues/guilhermedellamea/PIDL_Seg_Composites.svg?style=for-the-badge
 [issues-url]: https://github.com/guilhermedellamea/PIDL_Seg_Composites/issues
 [license-shield]: https://img.shields.io/github/license/guilhermedellamea/PIDL_Seg_Composites.svg?style=for-the-badge
-[license-url]: https://github.com/guilhermedellamea/PIDL_Seg_Composites/blob/master/LICENSE.txt
+[license-url]: https://github.com/guilhermedellamea/PIDL_Seg_Composites/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: www.linkedin.com/in/guilherme-basso-della-mea-837b4b147
