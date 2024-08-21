@@ -150,18 +150,16 @@ def loss_phi(
             epsilon_xx
             + (poisson_tensor / (1 - 2 * poisson_tensor)) * (epsilon_xx + epsilon_yy)
         )
-        * preds_Nseg_C
     )
     sigma_xy_from_Nseg = (
         2 * (E_tensor / (2 * (1 + poisson_tensor))) * epsilon_xy
-    ) * preds_Nseg_C
+    ) 
     sigma_yy_from_Nseg = (
         (E_tensor / (1 + poisson_tensor))
         * (
             epsilon_yy
             + (poisson_tensor / (1 - 2 * poisson_tensor)) * (epsilon_xx + epsilon_yy)
         )
-        * preds_Nseg_C
     )
     # Apply logistic transformation to segmentation mask
     preds_Nseg_logistic = 1 / (1 + torch.exp(-10 * (preds_Nseg_C - 0.5)))
